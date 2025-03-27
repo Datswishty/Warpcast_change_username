@@ -1,4 +1,4 @@
-# Warpcaster change name
+# Warpcast change name
 
 I found it weird that there is no clear path on how to change username on farcaster,
 so I made this small script, the details can be found at [DETAILS.md](DETAILS.md)
