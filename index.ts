@@ -4,12 +4,15 @@ import {
     EthersEip712Signer,
 } from "@farcaster/hub-nodejs";
 import { ethers } from "ethers";
+import { config } from "dotenv";
 
-// User inputs private key or secret phrase
-const args = process.argv.slice(2);
-const privateKeyOrSecretPhrase = args[0];
+// Load environment variables
+config();
+
+// Get values from environment variables
+const privateKeyOrSecretPhrase = process.env.PRIVATE_KEY;
 if (!privateKeyOrSecretPhrase) {
-    throw new Error("Private key or secret phrase is required");
+    throw new Error("PRIVATE_KEY environment variable is required");
 }
 
 let wallet: ethers.Wallet;
@@ -29,14 +32,14 @@ const accountKey: Eip712Signer = new EthersEip712Signer(wallet);
 
 console.log("Wallet address: ", wallet.address);
 
-const currentUsername = args[1];
+const currentUsername = process.env.CURRENT_USERNAME;
 if (!currentUsername) {
-    throw new Error("Current username is required");
+    throw new Error("CURRENT_USERNAME environment variable is required");
 }
 
-const newUsername = args[2];
+const newUsername = process.env.NEW_USERNAME;
 if (!newUsername) {
-    throw new Error("New username is required");
+    throw new Error("NEW_USERNAME environment variable is required");
 }
 // Check if new username is already taken
 const isNewUsernameTaken = await isUsernameTaken(newUsername);
@@ -100,13 +103,35 @@ const signatureToRegister = await generateSinature(
 // curl -X POST 'https://fnames.farcaster.xyz/transfers' \
 //   --header 'Content-Type: application/json' \
 //   --data-raw '{
-//   "name": "",
-//   "owner": "",
-//   "signature": "",
+//   "name": "%YOUR_NEW_NAME%",
+//   "owner": "%YOUR_WALLET_ADDRESS%",
+//   "signature": "%SINGATURE}",
 //   "from": 0,
-//   "to": ,
-//   "timestamp": 1743082916,
-//   "fid": }'
+//   "to": %YOUR_FID_FROM_STEP_ONE%,
+//   "timestamp": %TIMESTAMP%,
+//   "fid": %YOUR_FID_FROM_STEP_ONE%}'
+
+let responseCreate = await fetch("https://fnames.farcaster.xyz/transfers", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+        name: newUsername,
+        owner: wallet.address,
+        signature: signatureToRegister.signature,
+        from: 0,
+        to: fid,
+        timestamp: signatureToRegister.timestamp,
+        fid: fid,
+    }),
+});
+
+if (!responseCreate.ok) {
+    throw new Error("Failed to create username");
+}
+
+console.log(`Username ${newUsername} attached to FID ${fid}`);
 
 async function getFidFromUsername(username: string, owner: string) {
     // curl https://fnames.farcaster.xyz/transfers\?name\=vadimurlin
